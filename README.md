@@ -1,9 +1,16 @@
 Fork to make this work with ELRS Backpack. Instructions:
 
 -Solder Arduino Nano 33 BLE TX1 (D1) -> ELRS Backpack RX
+
 -Solder 5V and GND to backpack
+
 -Upload firmware from the GUI (releases page)
+
 -Choose CRSF as output in the configurator
+
+
+
+----------------------------------------
 
 
 
