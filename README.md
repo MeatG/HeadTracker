@@ -1,4 +1,8 @@
-Fork to make this work with ELRS Backpack. Instructions:
+Fork to make this work with ELRS Backpack. 
+
+
+
+Instructions:
 
 -Solder Arduino Nano 33 BLE TX1 (D1) & GND -> ELRS Backpack RX & GND
 
