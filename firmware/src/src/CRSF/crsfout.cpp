@@ -3,6 +3,12 @@
 #include "crc8.h"
 #include "trackersettings.h"
 
+#if defined(CONFIG_SOC_SERIES_NRF52X)
+  #define BACKPACK_BAUD BAUD115200   // nRF52: rekisteriarvo
+#else
+  #define BACKPACK_BAUD 115200       // muut alustat: baudi suoraan
+#endif
+
 CRSF crsfout;
 
 void CrsfOutInit()
@@ -43,7 +49,7 @@ volatile crsfPayloadLinkstatistics_s CRSF::LinkStatistics;
 void CRSF::Begin()
 {
   AuxSerial_Close();
-  AuxSerial_Open(BAUD400000, CONF8N1);
+  AuxSerial_Open(BACKPACK_BAUD, CONF8N1);   // ELRS VRX backpack (HDZero-target) = 115200 8N1
 }
 
 void CRSF::sendLinkStatisticsToFC()
@@ -66,32 +72,22 @@ void CRSF::sendLinkStatisticsToFC()
 
 void CRSF::sendRCFrameToFC()
 {
-  // Fix me properly, also merge CRSF better one day.
+  // ELRS Backpack MSPv2: MSP_ELRS_BACKPACK_SET_PTR (0x0383), payload 3 x int16 LE
+  uint16_t c0 = PackedRCdataOut.ch0;   // GUI: kanava 1
+  uint16_t c1 = PackedRCdataOut.ch1;   // GUI: kanava 2
+  uint16_t c2 = PackedRCdataOut.ch2;   // GUI: kanava 3
 
-  // Check the inversion status of the TX pin
-  static bool crsfoutinv = false;
-  if (crsfoutinv != trkset.getCrsfTxInv()) {
-    crsfoutinv = trkset.getCrsfTxInv();
-    // Close and re-open port with new settings
-    AuxSerial_Close();
-    uint8_t inversion = 0;
-    if (crsfoutinv) inversion |= CONFINV_TX;
-    AuxSerial_Open(BAUD400000, CONF8N1, inversion);
-  }
-
-  uint8_t outBuffer[RCframeLength + 4] = {0};
-
-  outBuffer[0] = CRSF_ADDRESS_FLIGHT_CONTROLLER;
-  outBuffer[1] = RCframeLength + 2;
-  outBuffer[2] = CRSF_FRAMETYPE_RC_CHANNELS_PACKED;
-
-  memcpy(outBuffer + 3, (void *)&PackedRCdataOut, RCframeLength);
-  Crc8 _crc(CRSF_CRC_POLY);
-  uint8_t crc = _crc.calc(&outBuffer[2], RCframeLength + 1);
-
-  outBuffer[RCframeLength + 3] = crc;
-
-  AuxSerial_Write(outBuffer, RCframeLength + 4);
+  uint8_t buf[15];
+  buf[0] = '$'; buf[1] = 'X'; buf[2] = '<';
+  buf[3] = 0;                       // flags
+  buf[4] = 0x83; buf[5] = 0x03;     // function 0x0383 (LE)
+  buf[6] = 6;    buf[7] = 0;        // payload size (LE)
+  buf[8]  = c0 & 0xFF; buf[9]  = c0 >> 8;
+  buf[10] = c1 & 0xFF; buf[11] = c1 >> 8;
+  buf[12] = c2 & 0xFF; buf[13] = c2 >> 8;
+  Crc8 crc(0xD5);                   // MSPv2 CRC8-DVB-S2, sama polynomi kuin CRSF:ssä
+  buf[14] = crc.calc(&buf[3], 11);  // flags..payload
+  AuxSerial_Write(buf, sizeof(buf));
 }
 
 void CRSF::sendAttitideToFC()
