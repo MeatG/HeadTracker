@@ -419,10 +419,10 @@ void calculate_Thread()
       }
 
       // Tilt output
-      tiltout = (tilt - tiltoffset) * trkset.getTlt_Gain() * (trkset.isTiltReversed() ? -1.0f : 1.0f);
+     tiltout = normalize(tilt - tiltoffset, -180, 180) * trkset.getTlt_Gain() * (trkset.isTiltReversed() ? -1.0f : 1.0f);
 
       // Roll output
-      rollout = (roll - rolloffset) * trkset.getRll_Gain() * (trkset.isRollReversed() ? -1.0f : 1.0f);
+      rollout = normalize(roll - rolloffset, -180, 180) * trkset.getRll_Gain() * (trkset.isRollReversed() ? -1.0f : 1.0f);
 
       // Pan output, Normalize to +/- 180 Degrees
       panout = normalize((pan - panoffset), -180, 180) * trkset.getPan_Gain() *
@@ -784,8 +784,8 @@ void calculate_Thread()
         k_mutex_unlock(&sensor_mutex);
       }
 
-      trkset.setDataTiltOff(tilt - tiltoffset);
-      trkset.setDataRollOff(roll - rolloffset);
+      trkset.setDataTiltOff(normalize(tilt - tiltoffset, -180, 180));
+      trkset.setDataRollOff(normalize(roll - rolloffset, -180, 180));
       trkset.setDataPanOff(normalize(pan - panoffset, -180, 180));
 
       trkset.setDataTiltOut(tiltout_ui);
